@@ -13,40 +13,7 @@ const UPDATE_CHECKER_LATEST_VERSION_URL = "https://uptime.kuma.pet/version";
 let interval;
 
 exports.startInterval = () => {
-    let check = async () => {
-        if ((await setting("checkUpdate")) === false) {
-            return;
-        }
-
-        log.debug("update-checker", "Retrieving latest versions");
-
-        try {
-            const res = await axios.get(UPDATE_CHECKER_LATEST_VERSION_URL);
-
-            // For debug
-            if (process.env.TEST_CHECK_VERSION === "1") {
-                res.data.slow = "1000.0.0";
-            }
-
-            let checkBeta = await setting("checkBeta");
-
-            if (checkBeta && res.data.beta) {
-                if (compareVersions.compare(res.data.beta, res.data.slow, ">")) {
-                    exports.latestVersion = res.data.beta;
-                    return;
-                }
-            }
-
-            if (res.data.slow) {
-                exports.latestVersion = res.data.slow;
-            }
-        } catch (_) {
-            log.info("update-checker", "Failed to check for new versions");
-        }
-    };
-
-    check();
-    interval = setInterval(check, UPDATE_CHECKER_INTERVAL_MS);
+    // Update checking disabled — this is a custom fork.
 };
 
 /**

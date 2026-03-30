@@ -108,6 +108,7 @@ const {
     setting,
     initJWTSecret,
     checkLogin,
+    checkPermission,
     doubleCheckPassword,
     shake256,
     SHAKE256_LENGTH,
@@ -191,6 +192,7 @@ const { resetChrome } = require("./monitor-types/real-browser-monitor-type");
 const { EmbeddedMariaDB } = require("./embedded-mariadb");
 const { SetupDatabase } = require("./setup-database");
 const { chartSocketHandler } = require("./socket-handlers/chart-socket-handler");
+const { userSocketHandler } = require("./socket-handlers/user-socket-handler");
 
 app.use(express.json());
 
@@ -699,6 +701,7 @@ let needSetup = false;
                 let user = R.dispense("user");
                 user.username = username;
                 user.password = await passwordHash.generate(password);
+                user.role = "admin";
                 await R.store(user);
 
                 needSetup = false;
@@ -724,7 +727,7 @@ let needSetup = false;
         // Add a new monitor
         socket.on("add", async (monitor, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-monitors");
                 let bean = R.dispense("monitor");
 
                 let notificationIDList = monitor.notificationIDList;
@@ -800,7 +803,7 @@ let needSetup = false;
         socket.on("editMonitor", async (monitor, callback) => {
             try {
                 let removeGroupChildren = false;
-                checkLogin(socket);
+                checkPermission(socket, "manage-monitors");
 
                 let bean = await R.findOne("monitor", " id = ? ", [monitor.id]);
 
@@ -1064,7 +1067,7 @@ let needSetup = false;
         // Start or Resume the monitor
         socket.on("resumeMonitor", async (monitorID, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-monitors");
                 await startMonitor(socket.userID, monitorID);
                 await server.sendUpdateMonitorIntoList(socket, monitorID);
 
@@ -1083,7 +1086,7 @@ let needSetup = false;
 
         socket.on("pauseMonitor", async (monitorID, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-monitors");
                 await pauseMonitor(socket.userID, monitorID);
                 await server.sendUpdateMonitorIntoList(socket, monitorID);
 
@@ -1108,7 +1111,7 @@ let needSetup = false;
                     deleteChildren = false;
                 }
 
-                checkLogin(socket);
+                checkPermission(socket, "manage-monitors");
 
                 const startTime = Date.now();
 
@@ -1210,7 +1213,7 @@ let needSetup = false;
 
         socket.on("addTag", async (tag, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-tags");
 
                 let bean = R.dispense("tag");
                 bean.name = tag.name;
@@ -1231,7 +1234,7 @@ let needSetup = false;
 
         socket.on("editTag", async (tag, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-tags");
 
                 let bean = await R.findOne("tag", " id = ? ", [tag.id]);
                 if (bean == null) {
@@ -1262,7 +1265,7 @@ let needSetup = false;
 
         socket.on("deleteTag", async (tagID, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-tags");
 
                 await R.exec("DELETE FROM tag WHERE id = ? ", [tagID]);
 
@@ -1281,7 +1284,7 @@ let needSetup = false;
 
         socket.on("addMonitorTag", async (tagID, monitorID, value, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-tags");
 
                 await R.exec("INSERT INTO monitor_tag (tag_id, monitor_id, value) VALUES (?, ?, ?)", [
                     tagID,
@@ -1306,7 +1309,7 @@ let needSetup = false;
 
         socket.on("editMonitorTag", async (tagID, monitorID, value, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-tags");
 
                 await R.exec("UPDATE monitor_tag SET value = ? WHERE tag_id = ? AND monitor_id = ?", [
                     value,
@@ -1331,7 +1334,7 @@ let needSetup = false;
 
         socket.on("deleteMonitorTag", async (tagID, monitorID, value, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-tags");
 
                 await R.exec("DELETE FROM monitor_tag WHERE tag_id = ? AND monitor_id = ? AND value = ?", [
                     tagID,
@@ -1474,7 +1477,7 @@ let needSetup = false;
 
         socket.on("setSettings", async (data, currentPassword, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-settings");
 
                 // If currently is disabled auth, don't need to check
                 // Disabled Auth + Want to Disable Auth => No Check
@@ -1537,7 +1540,7 @@ let needSetup = false;
         // Add or Edit
         socket.on("addNotification", async (notification, notificationID, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-notifications");
 
                 let notificationBean = await Notification.save(notification, notificationID, socket.userID);
                 await sendNotificationList(socket);
@@ -1558,7 +1561,7 @@ let needSetup = false;
 
         socket.on("deleteNotification", async (notificationID, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-notifications");
 
                 await Notification.delete(notificationID, socket.userID);
                 await sendNotificationList(socket);
@@ -1578,7 +1581,7 @@ let needSetup = false;
 
         socket.on("testNotification", async (notification, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-notifications");
 
                 let msg = await Notification.send(notification, notification.name + " Testing");
 
@@ -1633,7 +1636,7 @@ let needSetup = false;
 
         socket.on("clearEvents", async (monitorID, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-monitors");
 
                 log.info("manage", `Clear Events Monitor: ${monitorID} User ID: ${socket.userID}`);
 
@@ -1652,7 +1655,7 @@ let needSetup = false;
 
         socket.on("clearHeartbeats", async (monitorID, callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-monitors");
 
                 log.info("manage", `Clear Heartbeats Monitor: ${monitorID} User ID: ${socket.userID}`);
 
@@ -1680,7 +1683,7 @@ let needSetup = false;
 
         socket.on("clearStatistics", async (callback) => {
             try {
-                checkLogin(socket);
+                checkPermission(socket, "manage-monitors");
 
                 log.info("manage", `Clear Statistics User ID: ${socket.userID}`);
 
@@ -1716,6 +1719,7 @@ let needSetup = false;
         remoteBrowserSocketHandler(socket);
         generalSocketHandler(socket, server);
         chartSocketHandler(socket);
+        userSocketHandler(socket);
 
         log.debug("server", "added all socket handlers");
 
@@ -1803,7 +1807,11 @@ async function checkOwner(userID, monitorID) {
  */
 async function afterLogin(socket, user) {
     socket.userID = user.id;
+    socket.userRole = user.role || "admin";
     socket.join(user.id);
+
+    // Send role information to the client
+    socket.emit("userRole", { role: socket.userRole });
 
     let monitorList = await server.sendMonitorList(socket);
     await Promise.allSettled([

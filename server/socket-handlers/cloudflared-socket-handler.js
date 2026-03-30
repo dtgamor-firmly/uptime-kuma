@@ -1,4 +1,4 @@
-const { checkLogin, setSetting, setting, doubleCheckPassword } = require("../util-server");
+const { checkLogin, checkPermission, setSetting, setting, doubleCheckPassword } = require("../util-server");
 const { CloudflaredTunnel } = require("node-cloudflared-tunnel");
 const { UptimeKumaServer } = require("../uptime-kuma-server");
 const { log } = require("../../src/util");
@@ -56,7 +56,7 @@ module.exports.cloudflaredSocketHandler = (socket) => {
 
     socket.on(prefix + "start", async (token) => {
         try {
-            checkLogin(socket);
+            checkPermission(socket, "manage-cloudflared");
             if (token && typeof token === "string") {
                 await setSetting("cloudflaredTunnelToken", token);
                 cloudflared.token = token;
@@ -71,7 +71,7 @@ module.exports.cloudflaredSocketHandler = (socket) => {
 
     socket.on(prefix + "stop", async (currentPassword, callback) => {
         try {
-            checkLogin(socket);
+            checkPermission(socket, "manage-cloudflared");
             const disabledAuth = await setting("disableAuth");
             if (!disabledAuth) {
                 await doubleCheckPassword(socket, currentPassword);
@@ -87,7 +87,7 @@ module.exports.cloudflaredSocketHandler = (socket) => {
 
     socket.on(prefix + "removeToken", async () => {
         try {
-            checkLogin(socket);
+            checkPermission(socket, "manage-cloudflared");
             await setSetting("cloudflaredTunnelToken", "");
         } catch (error) {
             log.error("cloudflared", "Error in removeToken handler: " + error.message);

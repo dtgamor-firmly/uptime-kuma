@@ -38,6 +38,8 @@ export default {
                 initedSocketIO: false,
             },
             username: null,
+            userRole: null,
+            userList: [],
             remember: localStorage.remember !== "0",
             allowLoginDialog: false, // Allowed to show login dialog, but "loggedIn" have to be true too. This exists because prevent the login dialog show 0.1s in first before the socket server auth-ed.
             loggedIn: false,
@@ -142,6 +144,14 @@ export default {
                     this.$root.storage().removeItem("token");
                     this.allowLoginDialog = true;
                 }
+            });
+
+            socket.on("userRole", (data) => {
+                this.userRole = data.role;
+            });
+
+            socket.on("userList", (data) => {
+                this.userList = data;
             });
 
             socket.on("monitorList", (data) => {
@@ -426,7 +436,9 @@ export default {
                         this.storage().token = res.token;
                         this.socket.token = res.token;
                         this.loggedIn = true;
-                        this.username = this.getJWTPayload()?.username;
+                        let payload = this.getJWTPayload();
+                        this.username = payload?.username;
+                        this.userRole = payload?.role || "admin";
 
                         // Trigger Chrome Save Password
                         history.pushState({}, "");
@@ -450,7 +462,9 @@ export default {
                     this.logout();
                 } else {
                     this.loggedIn = true;
-                    this.username = this.getJWTPayload()?.username;
+                    let payload = this.getJWTPayload();
+                    this.username = payload?.username;
+                    this.userRole = payload?.role || "admin";
                 }
             });
         },
@@ -465,6 +479,8 @@ export default {
             this.socket.token = null;
             this.loggedIn = false;
             this.username = null;
+            this.userRole = null;
+            this.userList = [];
             this.clearData();
         },
 
@@ -851,6 +867,46 @@ export default {
                 return true;
             }
             return this.info.version === this.frontendVersion;
+        },
+
+        /**
+         * Whether the current user is an admin
+         * @returns {boolean} Is admin?
+         */
+        isAdmin() {
+            return this.userRole === "admin";
+        },
+
+        /**
+         * Whether the current user is a developer
+         * @returns {boolean} Is developer?
+         */
+        isDeveloper() {
+            return this.userRole === "developer";
+        },
+
+        /**
+         * Whether the current user is readonly
+         * @returns {boolean} Is readonly?
+         */
+        isReadonly() {
+            return this.userRole === "readonly";
+        },
+
+        /**
+         * Whether the current user can manage monitors (admin or developer)
+         * @returns {boolean} Can manage monitors?
+         */
+        canManageMonitors() {
+            return this.userRole === "admin" || this.userRole === "developer";
+        },
+
+        /**
+         * Whether the current user can manage settings (admin only)
+         * @returns {boolean} Can manage settings?
+         */
+        canManageSettings() {
+            return this.userRole === "admin";
         },
     },
 

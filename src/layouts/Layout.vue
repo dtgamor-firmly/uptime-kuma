@@ -22,16 +22,6 @@
                 <span class="fs-4 title">{{ $t("Uptime Kuma") }}</span>
             </router-link>
 
-            <a
-                v-if="hasNewVersion"
-                target="_blank"
-                href="https://github.com/louislam/uptime-kuma/releases"
-                class="btn btn-primary me-3"
-            >
-                <font-awesome-icon icon="arrow-alt-circle-up" />
-                {{ $t("New Update") }}
-            </a>
-
             <ul class="nav nav-pills">
                 <li v-if="$root.loggedIn" class="nav-item me-2">
                     <router-link to="/manage-status-page" class="nav-link">
@@ -143,7 +133,7 @@
                 {{ $t("List") }}
             </router-link>
 
-            <router-link to="/add" class="nav-link">
+            <router-link v-if="$root.canManageMonitors" to="/add" class="nav-link">
                 <div><font-awesome-icon icon="plus" /></div>
                 {{ $t("Add") }}
             </router-link>

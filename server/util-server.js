@@ -641,6 +641,21 @@ exports.checkLogin = (socket) => {
 };
 
 /**
+ * Check if the logged-in user has a specific permission based on their role
+ * @param {Socket} socket Socket instance (must have userID and userRole set)
+ * @param {string} permission The permission to check
+ * @returns {void}
+ * @throws The user does not have the required permission
+ */
+exports.checkPermission = (socket, permission) => {
+    exports.checkLogin(socket);
+    const { hasPermission } = require("./roles");
+    if (!hasPermission(socket.userRole, permission)) {
+        throw new Error("Permission denied. Your role does not have access to this action.");
+    }
+};
+
+/**
  * For logged-in users, double-check the password
  * @param {Socket} socket Socket.io instance
  * @param {string} currentPassword Password to validate

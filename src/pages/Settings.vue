@@ -1,11 +1,11 @@
 <template>
     <div>
         <div v-if="$root.isMobile" class="shadow-box mb-3">
-            <router-link to="/manage-status-page" class="nav-link">
+            <router-link v-if="$root.isAdmin" to="/manage-status-page" class="nav-link">
                 <font-awesome-icon icon="stream" />
                 {{ $t("Status Pages") }}
             </router-link>
-            <router-link to="/maintenance" class="nav-link">
+            <router-link v-if="$root.canManageMonitors" to="/maintenance" class="nav-link">
                 <font-awesome-icon icon="wrench" />
                 {{ $t("Maintenance") }}
             </router-link>
@@ -84,44 +84,33 @@ export default {
         },
 
         subMenus() {
-            return {
-                general: {
-                    title: this.$t("General"),
-                },
-                appearance: {
-                    title: this.$t("Appearance"),
-                },
-                notifications: {
-                    title: this.$t("Notifications"),
-                },
-                "reverse-proxy": {
-                    title: this.$t("Reverse Proxy"),
-                },
-                tags: {
-                    title: this.$t("Tags"),
-                },
-                "monitor-history": {
-                    title: this.$t("Monitor History"),
-                },
-                "docker-hosts": {
-                    title: this.$t("Docker Hosts"),
-                },
-                "remote-browsers": {
-                    title: this.$t("Remote Browsers"),
-                },
-                security: {
-                    title: this.$t("Security"),
-                },
-                "api-keys": {
-                    title: this.$t("API Keys"),
-                },
-                proxies: {
-                    title: this.$t("Proxies"),
-                },
-                about: {
-                    title: this.$t("About"),
-                },
-            };
+            let menus = {};
+
+            // General and Appearance are visible to all logged-in users
+            menus.general = { title: this.$t("General") };
+            menus.appearance = { title: this.$t("Appearance") };
+
+            // Admin and Developer can manage these
+            if (this.$root.canManageMonitors) {
+                menus.notifications = { title: this.$t("Notifications") };
+                menus.tags = { title: this.$t("Tags") };
+                menus["monitor-history"] = { title: this.$t("Monitor History") };
+                menus["docker-hosts"] = { title: this.$t("Docker Hosts") };
+                menus["remote-browsers"] = { title: this.$t("Remote Browsers") };
+                menus.proxies = { title: this.$t("Proxies") };
+            }
+
+            // Admin-only settings
+            if (this.$root.isAdmin) {
+                menus["reverse-proxy"] = { title: this.$t("Reverse Proxy") };
+                menus.security = { title: this.$t("Security") };
+                menus["api-keys"] = { title: this.$t("API Keys") };
+                menus.users = { title: this.$t("User Management") };
+            }
+
+            menus.about = { title: this.$t("About") };
+
+            return menus;
         },
     },
 
